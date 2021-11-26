@@ -1,31 +1,38 @@
 library(shiny)
-
-# Define UI for application that plots random distributions 
+vars <- setdiff(names(iris), "Species")
 ui <- pageWithSidebar(
-  
-  # Application title
-  headerPanel("Hello Shiny!"),
-  
-  # Sidebar with a slider input for number of observations
+  headerPanel('Iris k-means clustering'),
   sidebarPanel(
-    sliderInput("obs", 
-                "Number of observations:", 
-                min = 1,
-                max = 1000, 
-                value = 500)
+    selectInput('xcol', 'X Variable', vars),
+    selectInput('ycol', 'Y Variable', vars, selected = vars[[2]]),
+    numericInput('clusters', 'Cluster count', 3, min = 1, max = 9)
   ),
-  
-  # Show a plot of the generated distribution
   mainPanel(
-    plotOutput("distPlot")
+    plotOutput('plot1')
   )
 )
 
-server <- (function(input, output) {
+server <- function(input, output, session) {
   
-  output$distPlot <- renderPlot({
-    dist <- rnorm(input$obs)
-    hist(dist)
+  # Combine the selected variables into a new data frame
+  selectedData <- reactive({
+    iris[, c(input$xcol, input$ycol)]
   })
-})
-shinyApp(ui,server)
+  
+  clusters <- reactive({
+    kmeans(selectedData(), input$clusters)
+  })
+  
+  output$plot1 <- renderPlot({
+    palette(c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3",
+              "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999"))
+    
+    par(mar = c(5.1, 4.1, 0, 1))
+    plot(selectedData(),
+         col = clusters()$cluster,
+         pch = 20, cex = 3)
+    points(clusters()$centers, pch = 4, cex = 4, lwd = 4)
+  })
+  
+}
+shinyApp(ui, server)
